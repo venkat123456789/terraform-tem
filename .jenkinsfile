@@ -1,0 +1,46 @@
+pipeline {
+    agent any
+    stages {
+        stage ("Build") {
+            environment {
+                AWS_ACCOUNT_ID = "${params.environment}"
+                QA = "${params.qa}"
+                REVTRAX_API_KEY = "${params.revtrax_api_key}"
+            }
+            steps {
+                checkout scm
+                script {
+                    def credentialsId
+                    def stage
+                    def aws_region
+                    aws_region = "us-east-1"
+                    if (env.AWS_ACCOUNT_ID == "292863690369") {
+                        credentialsId = "aws.sandbox"
+                        stage = "dev"
+                    } else if (env.AWS_ACCOUNT_ID == "484346401365" && env.QA != "false") {
+                        credentialsId = "aws.preprod"
+                        stage = "int"
+                    } else if (env.AWS_ACCOUNT_ID == "484346401365" && env.QA == "false") {
+                        credentialsId = "aws.preprod"
+                        stage = "cert"
+                    } else {
+                        credentialsId = "aws.prod.topgolfci"
+                        stage = "prod"
+                    }
+                    withCredentials([[
+                        $class: 'AmazonWebServicesCredentialsBinding',
+                        credentialsId: credentialsId,
+                        accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                        secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                    ]]) {
+                        echo "${env.AWS_ACCOUNT_ID} ${env.AWS_ACCESS_KEY_ID} ${env.AWS_SECRET_ACCESS_KEY} ${env.REVTRAX_API_KEY} ${stage} ${aws_region}"
+                        sh "docker-compose down -v"
+                        sh "docker-compose build"
+                        sh "docker-compose run provision-resources /coupon-service/util/resources.bash -s ${stage} -r ${aws_region}"
+                        sh "docker-compose run deploy /coupon-service/util/dockerDeploy.bash -s ${stage} -r ${aws_region} --revtrax-key ${env.REVTRAX_API_KEY}"
+                    }
+                }
+            }
+        }
+    }
+}
