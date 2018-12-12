@@ -1,8 +1,8 @@
 # Amazon AWS Access Key
-aws_access_key = "AKIAJKV3OWHNA3SNSQPA"
+aws_access_key = ""
 
 # Amazon AWS Secret Key
-aws_secret_key = "icPTTzhnFr77FZ5m0FgxNjkpw829n0ZWgc7nYRXp"
+aws_secret_key = ""
 
 
 # Amazon AWS Key Pair Name
